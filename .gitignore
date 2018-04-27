@@ -2,7 +2,9 @@
 *.pyc
 .DS_Store
 *.npz
+vgg19.npy
 sample/
 samples/
 checkpoint/
+data2017/
 __pycache__/

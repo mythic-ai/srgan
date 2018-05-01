@@ -1,3 +1,4 @@
+*~
 ._*
 *.pyc
 .DS_Store
@@ -6,5 +7,6 @@ vgg19.npy
 sample/
 samples/
 checkpoint/
+RDN_TestCode/model/
 data2017/
 __pycache__/

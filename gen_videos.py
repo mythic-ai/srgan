@@ -5,6 +5,7 @@ import tensorlayer as tl
 import numpy as np
 import scipy
 from model import SRGAN_g
+from timeit import default_timer as timer
 
 def shrink_video(video_path):
     vidcap = cv2.VideoCapture(video_path)
@@ -122,6 +123,7 @@ def join_videos():
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
+    start_time = timer()
 
     parser.add_argument('--video', type=str, default='data2017/football_cif.y4m',
                         help='The optional path to a .mp4 file to run the SSD model on, frame by frame.'
@@ -132,3 +134,6 @@ if __name__ == '__main__':
     #shrink_video('data2017/Netflix_Aerial_4096x2160_60fps_10bit_420.y4m')
     #video_superresolution(args.video)
     join_videos()
+
+    delta_time = timer() - start_time
+    print("took: %4.4fs" % delta_time)

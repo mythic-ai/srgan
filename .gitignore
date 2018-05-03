@@ -9,4 +9,5 @@ samples/
 checkpoint/
 RDN_TestCode/model/
 data2017/
+data/
 __pycache__/

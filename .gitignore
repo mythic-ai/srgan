@@ -4,6 +4,7 @@
 .DS_Store
 *.npz
 vgg19.npy
+.idea/
 sample/
 samples/
 checkpoint/

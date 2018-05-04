@@ -57,9 +57,10 @@ class VideoFrames:
             raise StopIteration
         return frame
 
-def process_video(video_path, lr_method, sr_methods, frame_skip=1):
+def process_video(filename, lr_method, sr_methods, frame_skip=1):
     # Open a video for reading
-    video_reader = VideoFrames(video_path)
+    in_path = 'data/' + filename + '.y4m'
+    video_reader = VideoFrames(in_path)
     print("Ground Truth resolution = {} x {}".format(video_reader.width, video_reader.height))
 
     for frame_count, lr_frame in enumerate(video_reader):
@@ -72,43 +73,52 @@ def process_video(video_path, lr_method, sr_methods, frame_skip=1):
                 sr_frames.append(sr_frame)
 
             sr_joined = np.concatenate(sr_frames, axis=1)
-            cv2.imshow('frame', sr_joined)
-            cv2.waitKey(1)
+            #cv2.imshow('frame', sr_joined)
+            #cv2.waitKey(1)
 
             if frame_count == 0:
-                # Define the codec and create VideoWriter objects
-                fourcc = cv2.VideoWriter_fourcc(*'XVID')
                 write_shape = (sr_joined.shape[1], sr_joined.shape[0])
                 print("Output resolution = {}".format(write_shape))
-                video_writer = cv2.VideoWriter('samples/evaluate/joined.avi', fourcc, 20.0, write_shape)
+
+                # Define the codec and create VideoWriter object
+                out_path = 'samples/evaluate/' + filename + '.avi'
+                fourcc = cv2.VideoWriter_fourcc(*'XVID')
+                video_writer = cv2.VideoWriter(out_path, fourcc, 20.0, write_shape)
 
             print("Writing frame {}".format(frame_count))
             video_writer.write(sr_joined)
 
     video_writer.release()
 
-def process_videos(video_paths):
+def process_videos():
     lr_method = Bicubic(0.25)
     sr_methods = [Bicubic(4), SRGAN()]
 
-    for path in video_paths:
-        process_video(path, lr_method, sr_methods, frame_skip=2)
+    filenames = ['football_cif',
+                 'aspen_1080p',
+                 'blue_sky_1080p25',
+                 'controlled_burn_1080p.y4m',
+                 'crowd_run_2160p50.y4m',
+                 'dinner_1080p30',
+                 'ducks_take_off_2160p50',
+                 'factory_1080p30',
+                 'FourPeople_1280x720_60',
+                 'in_to_tree_2160p50']
+    for filename in filenames:
+        process_video(filename, lr_method, sr_methods, frame_skip=1)
 
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser()
-    start_time = timer()
 
-    parser.add_argument('--video', type=str, default='data2017/football_cif.y4m',
+    parser.add_argument('--video', type=str, default='data/football_cif.y4m',
                         help='The optional path to a .mp4 file to run the SSD model on, frame by frame.'
                             'If this parameter is unspecified, the program will use the video stream from the webcam.')
 
     args = parser.parse_args()
 
-    #shrink_video('data2017/Netflix_Aerial_4096x2160_60fps_10bit_420.y4m')
-    #video_superresolution(args.video)
-    #join_videos()
-    process_videos([args.video])
+    start_time = timer()
+    process_videos()
 
     delta_time = timer() - start_time
     print("took: %4.4fs" % delta_time)

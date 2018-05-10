@@ -44,7 +44,7 @@ class Bicubic:
         hr_frame = scipy.misc.imresize(lr_frame, [h_scaled, w_scaled], interp='bicubic', mode=None)
         return hr_frame
 
-class VideoFrames:
+class VideoFrameIterator:
     """An iterator that reads a sequence of frames from a video file"""
 
     def __init__(self, video_path):
@@ -71,12 +71,46 @@ class VideoFrames:
             raise StopIteration
         return frame
 
+class ImageDirIterator:
+    """An iterator that reads a sequence of images from a directory"""
+
+    def __init__(self, path):
+        self.in_path = path
+        self.files = tl.files.load_file_list(path=self.in_path, regx='^[^.].*\.png')
+        self.file_idx = 0
+
+    def __iter__(self):
+        return self
+
+    def __next__(self):
+        """Returns the next image from the directory specified by self.in_path"""
+        if self.file_idx == len(self.files):
+            raise StopIteration
+
+        filename = self.files[self.file_idx]
+        print("Reading from {}...".format(filename))
+        img = tl.vis.read_image(filename, path=self.in_path)
+
+        self.file_idx += 1
+        return filename, img
+
+def process_images(in_path, out_path, sr_method = SRGAN()):
+    """Do super-resolution on a whole directory of images"""
+    lr_images = ImageDirIterator(in_path)
+
+    for filename, lr_frame in lr_images:
+        lr_frame = lr_frame[:,:,:3]
+        hr_frame = sr_method.process_image(lr_frame)
+        tl.vis.save_image(hr_frame, out_path + filename)
+
 def process_video(filename, lr_method, sr_methods, frame_skip=1):
-    # Open a video for reading
+    """Downsamples a video, then upsamples it using multiple methods and outputs all of them into a single video
+       for easy visual comparison."""
     start_time = timer()
 
+    # Open a video for reading
     in_path = 'data/' + filename + '.y4m'
-    video_reader = VideoFrames(in_path)
+    video_reader = VideoFrameIterator(in_path)
 
     for frame_count, lr_frame in enumerate(video_reader):
         if frame_count % frame_skip == 0:
@@ -138,7 +172,8 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     start_time = timer()
-    process_videos()
+    process_images('data/samsung_samples/', 'data/samsung_output/')
+    #process_videos()
 
     delta_time = timer() - start_time
     print("Total time: {:.4f}s".format(delta_time))

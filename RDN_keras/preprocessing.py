@@ -4,8 +4,9 @@ from random import shuffle, randint
 import tensorlayer as tl
 from imageio import imread
 
-def DIV2K_generate(train, batch_size, crop_size=32):
-    """Generate crops of the DIV2K images from the NTIRE 2018 challenge"""
+def DIV2K_RAM_generate(train, batch_size, crop_size):
+    """Generate crops of the DIV2K images from the NTIRE 2018 challenge.
+       This version preloads the entire dataset into memory, greatly speeding up training."""
 
     scale = 4
     data_path = '../data/ntire2018/'
@@ -15,13 +16,98 @@ def DIV2K_generate(train, batch_size, crop_size=32):
     else:
         lr_dir = data_path + 'DIV2K_valid_LR_wild/'
         hr_dir = data_path + 'DIV2K_valid_HR/'
+
     lr_files = tl.files.load_file_list(path=lr_dir, regx='^[^.].*\.png')
+    lr_files.sort()
+    lr_imgs = []
+    hr_imgs = []
+    index_pairs = []
+    last_hr_file = ''
+    for i, lr_file in enumerate(lr_files):
+        if i % 100 == 0:
+            print('Loaded {}/{} images'.format(i, len(lr_files)))
+
+        # Load low-res image into memory
+        lr_img = imread(lr_dir + lr_file)
+        lr_imgs.append(lr_img)
+
+        # Load high-res image into memory, but only if it's a new image
+        hr_file = lr_file[:4] + '.png'
+        if last_hr_file != hr_file:
+            last_hr_file = hr_file
+            hr_img = imread(hr_dir + hr_file)
+            hr_imgs.append(hr_img)
+
+        # Track which pair of LR/HR images correspond to one another
+        index_pairs.append((i, len(hr_imgs) - 1))
+
+        # Check image dimensions
+        if crop_size is not None:
+            assert lr_img.shape[0] >= crop_size
+            assert lr_img.shape[1] >= crop_size
+        assert lr_img.shape[0] * scale == hr_img.shape[0]
+        assert lr_img.shape[1] * scale == hr_img.shape[1]
+
     lr_batch = []
     hr_batch = []
 
     while True:
         if train:
-            # Decorrelate gradient signals during training.
+            # Shuffle during training to decorrelate gradient signals.
+            shuffle(index_pairs)
+        else:
+            # Ensure the validation set is deterministic.
+            lr_batch = []
+            hr_batch = []
+
+        for i, j in index_pairs:
+            # Read the image
+            lr_img = lr_imgs[i]
+            hr_img = hr_imgs[j]
+
+            # Crop a random patch out of the image
+            if crop_size is not None:
+                crop_t = randint(0, lr_img.shape[0] - crop_size)
+                crop_b = crop_t + crop_size
+                crop_l = randint(0, lr_img.shape[1] - crop_size)
+                crop_r = crop_l + crop_size
+                lr_img = lr_img[crop_t:crop_b, crop_l:crop_r]
+                hr_img = hr_img[crop_t * scale:crop_b * scale, crop_l * scale:crop_r * scale]
+
+            # TODO: after cropping, add normalization, flipping, and 90-deg rotations as in the paper.
+            # TODO: add additional data augmentation and compare results on realistic data.
+
+            # Add the LR and HR patches to the current batch.
+            lr_batch.append(lr_img)
+            hr_batch.append(hr_img)
+            if len(hr_batch) == batch_size:
+                yield np.array(lr_batch), np.array(hr_batch)
+                lr_batch = []
+                hr_batch = []
+
+"""Ignore everything after this line :)"""
+
+def DIV2K_disk_generate(train, batch_size, crop_size):
+    """Generate crops of the DIV2K images from the NTIRE 2018 challenge.
+       This version loads individual batches from disk, which saves memory and start-up time but is very slow."""
+
+    scale = 4
+    data_path = '../data/ntire2018/'
+    if train:
+        lr_dir = data_path + 'DIV2K_train_LR_wild/'
+        hr_dir = data_path + 'DIV2K_train_HR/'
+    else:
+        lr_dir = data_path + 'DIV2K_valid_LR_wild/'
+        hr_dir = data_path + 'DIV2K_valid_HR/'
+
+    lr_files = tl.files.load_file_list(path=lr_dir, regx='^[^.].*\.png')
+
+    lr_batch = []
+    hr_batch = []
+
+    while True:
+        if train:
+            # Shuffle during training to decorrelate gradient signals.
             shuffle(lr_files)
         else:
             # Ensure the validation set is deterministic.
@@ -44,8 +130,7 @@ def DIV2K_generate(train, batch_size, crop_size=32):
                 lr_img = lr_img[crop_t:crop_b, crop_l:crop_r]
                 hr_img = hr_img[crop_t*scale:crop_b*scale, crop_l*scale:crop_r*scale]
 
-            # TODO: add normalization, flipping, and 90-deg rotations as in the paper.
-            # TODO: check if data reading is a bottleneck.
+            # TODO: after cropping, add normalization, flipping, and 90-deg rotations as in the paper.
             # TODO: add additional data augmentation and compare results on realistic data.
 
             # Add the LR and HR patches to the current batch.

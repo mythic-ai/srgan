@@ -4,11 +4,17 @@ import tensorflow as tf
 import tensorlayer as tl
 import numpy as np
 import scipy
+import os
 from model import SRGAN_g
+from RDN_keras.model import RDN147
 from timeit import default_timer as timer
 
+"""This file is full of evaluation tools for SRGAN and RDN on images and video."""
+
+###====================== Image processors for upscaling and downscaling ===========================###
+
 class SRGAN:
-    """An object that performs 4x super-resolution using SRGAN"""
+    """An image processing wrapper around SRGAN for performing 4x super-resolution"""
 
     def __init__(self):
         """Initializes the SRGAN generator network using pre-trained weights"""
@@ -30,8 +36,29 @@ class SRGAN:
         hr_frame = np.uint8(hr_frame + 0.5)
         return hr_frame[0]
 
+class RDN:
+    """An image processing wrapper around RDN for performing 4x super-resolution"""
+
+    def __init__(self, model_weights=None):
+        """Initializes the SRGAN generator network using pre-trained weights"""
+
+        # Load the super-resolution network.
+        self.model = RDN147()
+        if model_weights is not None:
+            self.model.load_weights(model_weights)
+
+    def process_image(self, lr_frame):
+        """Returns the super-resolved version of lr_frame"""
+        hr_frame = self.model.predict(np.expand_dims(lr_frame, 0))
+        return hr_frame[0]
+        #lr_frame = (lr_frame / 127.5) - 1
+        #hr_frame = self.sess.run(self.net_g.outputs, {self.t_image: [lr_frame]})
+        #hr_frame = (hr_frame + 1) * 127.5
+        #hr_frame = np.uint8(hr_frame + 0.5)
+        return hr_frame[0]
+
 class Bicubic:
-    """An object that performs bicubic up- or down-sampling at a given scale"""
+    """An image processing object that performs bicubic up- or down-sampling at a given scale"""
 
     def __init__(self, scale):
         """Sets the scale factor for up-sampling (if greater than 1) or down-sampling (if less than 1)"""
@@ -43,6 +70,8 @@ class Bicubic:
         w_scaled = int(lr_frame.shape[1] * self.scale)
         hr_frame = scipy.misc.imresize(lr_frame, [h_scaled, w_scaled], interp='bicubic', mode=None)
         return hr_frame
+
+###====================== Image iterators ===========================###
 
 class VideoFrameIterator:
     """An iterator that reads a sequence of frames from a video file"""
@@ -94,9 +123,15 @@ class ImageDirIterator:
         self.file_idx += 1
         return filename, img
 
-def process_images(in_path, out_path, sr_method = SRGAN()):
+###====================== Batch processing scripts ===========================###
+
+def process_images(in_path, out_path, sr_method):
     """Do super-resolution on a whole directory of images"""
     lr_images = ImageDirIterator(in_path)
+
+    # Prepare the output directory
+    if not os.path.exists(out_path):
+        os.makedirs(out_path)
 
     for filename, lr_frame in lr_images:
         lr_frame = lr_frame[:,:,:3]
@@ -172,7 +207,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     start_time = timer()
-    process_images('data/samsung_samples/', 'data/samsung_output/')
+    process_images('data/samsung_samples/', 'data/samsung_output_RDN/', sr_method=RDN('RDN_keras/checkpoint/weights.02-20.66.hdf5'))
     #process_videos()
 
     delta_time = timer() - start_time

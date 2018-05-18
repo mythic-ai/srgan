@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
-"""Residual Dense Net, translated into Keras
+"""Residual Dense Net, translated into Keras.
+   Based on the original work: https://github.com/yulunzhang/RDN
 """
 from __future__ import absolute_import
 from __future__ import division
@@ -78,11 +79,11 @@ def RDN(D, C, F, G, G_0, height=None, width=None):
 
     return Model(img_lr, img_sr)
 
-def get_model():
+def RDN147():
     """RDN-147 with x4 scaling factor, the original model described in the paper"""
     return RDN(20, 6, 64, 32, 64)
 
-def get_small_model():
+def RDN27():
     """RDN-27 with x4 scaling factor, a smaller version. Warning: receptive field is small."""
     return RDN(5, 3, 32, 16, 32)
 

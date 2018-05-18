@@ -37,7 +37,7 @@ def upsample(input_tensor, channels, scale):
     import tensorflow as tf
 
     packed = Conv2D(channels * scale * scale, (3, 3), padding='same')(input_tensor)
-    output_tensor = Lambda(tf.depth_to_space, arguments={'scale': scale})(packed)
+    output_tensor = Lambda(tf.depth_to_space, arguments={'block_size': scale})(packed)
 
     return output_tensor
 
@@ -83,7 +83,7 @@ def get_model():
     return RDN(20, 6, 64, 32, 64)
 
 def get_small_model():
-    """RDN-27 with x4 scaling factor, a smaller version"""
+    """RDN-27 with x4 scaling factor, a smaller version. Warning: receptive field is small."""
     return RDN(5, 3, 32, 16, 32)
 
 """Ignore everything after this line :)"""

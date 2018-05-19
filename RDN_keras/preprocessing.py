@@ -1,8 +1,14 @@
 import numpy as np
+import os
+import re
 from random import shuffle, randint
 
-import tensorlayer as tl
 from imageio import imread
+
+def load_file_list(path, regx):
+    files = [f for f in os.listdir(path) if re.search(regx, f)]
+    print('Found {} files in {}'.format(len(files), path))
+    return files
 
 def DIV2K_RAM_generate(train, batch_size, crop_size):
     """Generate crops of the DIV2K images from the NTIRE 2018 challenge.
@@ -17,7 +23,7 @@ def DIV2K_RAM_generate(train, batch_size, crop_size):
         lr_dir = data_path + 'DIV2K_valid_LR_wild/'
         hr_dir = data_path + 'DIV2K_valid_HR/'
 
-    lr_files = tl.files.load_file_list(path=lr_dir, regx='^[^.].*\.png')
+    lr_files = load_file_list(lr_dir, '^[^.].*\.png')
     lr_files.sort()
     lr_imgs = []
     hr_imgs = []
@@ -100,7 +106,7 @@ def DIV2K_disk_generate(train, batch_size, crop_size):
         lr_dir = data_path + 'DIV2K_valid_LR_wild/'
         hr_dir = data_path + 'DIV2K_valid_HR/'
 
-    lr_files = tl.files.load_file_list(path=lr_dir, regx='^[^.].*\.png')
+    lr_files = load_file_list(lr_dir, '^[^.].*\.png')
 
     lr_batch = []
     hr_batch = []

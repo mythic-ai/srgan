@@ -7,7 +7,9 @@ import scipy
 import os
 from model import SRGAN_g
 from RDN_keras.model import RDN147
+from RDN_keras.preprocessing import load_file_list
 from timeit import default_timer as timer
+from imageio import imread, imwrite
 
 """This file is full of evaluation tools for SRGAN and RDN on images and video."""
 
@@ -105,7 +107,7 @@ class ImageDirIterator:
 
     def __init__(self, path):
         self.in_path = path
-        self.files = tl.files.load_file_list(path=self.in_path, regx='^[^.].*\.png')
+        self.files = load_file_list(self.in_path, '^[^.].*\.png')
         self.file_idx = 0
 
     def __iter__(self):
@@ -118,7 +120,7 @@ class ImageDirIterator:
 
         filename = self.files[self.file_idx]
         print("Reading from {}...".format(filename))
-        img = tl.vis.read_image(filename, path=self.in_path)
+        img = imread(self.in_path + filename)
 
         self.file_idx += 1
         return filename, img
@@ -136,7 +138,7 @@ def process_images(in_path, out_path, sr_method):
     for filename, lr_frame in lr_images:
         lr_frame = lr_frame[:,:,:3]
         hr_frame = sr_method.process_image(lr_frame)
-        tl.vis.save_image(hr_frame, out_path + filename)
+        imwrite(out_path + filename, hr_frame)
 
 def process_video(filename, lr_method, sr_methods, frame_skip=1):
     """Downsamples a video, then upsamples it using multiple methods and outputs all of them into a single video
@@ -207,7 +209,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     start_time = timer()
-    process_images('data/samsung_samples/', 'data/samsung_output_RDN/', sr_method=RDN('RDN_keras/checkpoint/weights.02-20.66.hdf5'))
+    process_images('data/samsung_samples/', 'data/samsung_output_RDN/', sr_method=RDN('RDN_keras/checkpoint/weights.16-18.96.hdf5'))
     #process_videos()
 
     delta_time = timer() - start_time

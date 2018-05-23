@@ -54,6 +54,8 @@ def DIV2K_RAM_generate(train, batch_size, crop_size):
         assert lr_img.shape[0] * scale == hr_img.shape[0]
         assert lr_img.shape[1] * scale == hr_img.shape[1]
 
+    print("Loaded {} low-res and {} high-res images into memory!".format(len(lr_imgs), len(hr_imgs)))
+
     lr_batch = []
     hr_batch = []
 
@@ -65,6 +67,7 @@ def DIV2K_RAM_generate(train, batch_size, crop_size):
             # Ensure the validation set is deterministic.
             lr_batch = []
             hr_batch = []
+            assert crop_size is None
 
         for i, j in index_pairs:
             # Read the image
@@ -80,8 +83,19 @@ def DIV2K_RAM_generate(train, batch_size, crop_size):
                 lr_img = lr_img[crop_t:crop_b, crop_l:crop_r]
                 hr_img = hr_img[crop_t * scale:crop_b * scale, crop_l * scale:crop_r * scale]
 
-            # TODO: after cropping, add normalization, flipping, and 90-deg rotations as in the paper.
-            # TODO: add additional data augmentation and compare results on realistic data.
+            # Normalize the image between [-1, 1]
+            lr_img = lr_img / 127.5 - 1
+            hr_img = hr_img / 127.5 - 1
+
+            # Apply nondetermimistic data augmentation, in the form of rotations and flips
+            if not train:
+                orientation = randint(0, 7)
+                if orientation >= 4:
+                    lr_img = np.flip(lr_img, 0)
+                    hr_img = np.flip(hr_img, 0)
+                if orientation % 4 != 0:
+                    lr_img = np.rot90(lr_img, orientation % 4, [0, 1])
+                    hr_img = np.rot90(hr_img, orientation % 4, [0, 1])
 
             # Add the LR and HR patches to the current batch.
             lr_batch.append(lr_img)
@@ -136,8 +150,16 @@ def DIV2K_disk_generate(train, batch_size, crop_size):
                 lr_img = lr_img[crop_t:crop_b, crop_l:crop_r]
                 hr_img = hr_img[crop_t*scale:crop_b*scale, crop_l*scale:crop_r*scale]
 
-            # TODO: after cropping, add normalization, flipping, and 90-deg rotations as in the paper.
-            # TODO: add additional data augmentation and compare results on realistic data.
+            lr_img = lr_img / 127.5 - 1
+            hr_img = hr_img / 127.5 - 1
+            if not train:
+                orientation = randint(0, 7)
+                if orientation >= 4:
+                    lr_img = np.flip(lr_img, 0)
+                    hr_img = np.flip(hr_img, 0)
+                if orientation % 4 != 0:
+                    lr_img = np.rot90(lr_img, orientation % 4, [0, 1])
+                    hr_img = np.rot90(hr_img, orientation % 4, [0, 1])
 
             # Add the LR and HR patches to the current batch.
             lr_batch.append(lr_img)

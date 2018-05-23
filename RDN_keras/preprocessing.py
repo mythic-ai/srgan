@@ -88,7 +88,7 @@ def DIV2K_RAM_generate(train, batch_size, crop_size):
             hr_img = hr_img / 127.5 - 1
 
             # Apply nondetermimistic data augmentation, in the form of rotations and flips
-            if not train:
+            if train:
                 orientation = randint(0, 7)
                 if orientation >= 4:
                     lr_img = np.flip(lr_img, 0)

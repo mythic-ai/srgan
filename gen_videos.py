@@ -35,7 +35,7 @@ class SRGAN:
         lr_frame = (lr_frame / 127.5) - 1
         hr_frame = self.sess.run(self.net_g.outputs, {self.t_image: [lr_frame]})
         hr_frame = (hr_frame + 1) * 127.5
-        hr_frame = np.uint8(hr_frame + 0.5)
+        hr_frame = np.uint8(np.clip(hr_frame + 0.5, 0, 255))
         return hr_frame[0]
 
 class RDN:
@@ -54,7 +54,7 @@ class RDN:
         lr_frame = (lr_frame / 127.5) - 1
         hr_frame = self.model.predict(np.expand_dims(lr_frame, 0))
         hr_frame = (hr_frame + 1) * 127.5
-        hr_frame = np.uint8(hr_frame + 0.5)
+        hr_frame = np.uint8(np.clip(hr_frame + 0.5, 0, 255))
         return hr_frame[0]
 
 class Bicubic:
@@ -207,7 +207,7 @@ if __name__ == '__main__':
     args = parser.parse_args()
 
     start_time = timer()
-    process_images('data/samsung_samples/', 'data/samsung_output_RDN/', sr_method=RDN('RDN_keras/checkpoint/weights.004-0.15.hdf5'))
+    process_images('data/samsung_samples/', 'data/samsung_output_RDN/', sr_method=RDN('RDN_keras/checkpoint/weights.102-0.1450.hdf5'))
     #process_videos()
 
     delta_time = timer() - start_time
